@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Poll {
+  id          String     @id @default(cuid())
+  code        String     @unique
+  title       String
+  status      PollStatus @default(CLOSED)
+  createdAt   DateTime   @default(now())
+  questions   Question[]
+  participants User[]
+}
+
+model Question {
+  id          String     @id @default(cuid())
+  poll        Poll       @relation(fields: [pollId], references: [id])
+  pollId      String
+  text        String
+  options     Option[]
+  timer       Int        @default(60)
+  status      QuestionStatus @default(OPEN)
+  createdAt   DateTime   @default(now())
+}
+
+model User {
+  id          String     @id @default(cuid())
+  username    String
+  poll        Poll       @relation(fields: [pollId], references: [id])
+  pollId      String
+  createdAt   DateTime   @default(now())
+}
+
+model Option {
+  id            String     @id @default(cuid())
+  question      Question   @relation(fields: [questionId], references: [id])
+  questionId    String
+  text          String
+  isCorrect     Boolean    @default(false)
+}
+
+enum PollStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum QuestionStatus {
+  OPEN
+  CLOSED
+}
