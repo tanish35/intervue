@@ -15,16 +15,21 @@ export const createPoll = asyncHandler(async (req: Request, res: Response) => {
     .substring(2, 8)
     .toUpperCase()}`;
 
+  // @ts-ignore
+  const userId = req.user.id;
+
   const poll = await prisma.poll.create({
     data: {
       title: req.body.title,
       status: "ACTIVE",
       code,
+      creator: { connect: { id: userId } },
       questions: {
         create: [],
       },
     },
   });
+
   io.of("/").adapter.on("create-room", (room) => {
     if (room === code) console.log(`Poll room ${code} created`);
   });
@@ -35,6 +40,19 @@ export const createPoll = asyncHandler(async (req: Request, res: Response) => {
 export const addQuestion = asyncHandler(async (req: Request, res: Response) => {
   const { code } = req.params;
   const { text, options, timer } = req.body;
+
+  // @ts-ignore
+  const userId = req.user.id;
+
+  const poll = await prisma.poll.findUnique({
+    where: { code },
+    select: { creatorId: true },
+  });
+
+  if (!poll || poll.creatorId !== userId) {
+    res.status(403);
+    throw new Error("Not authorized to add questions to this poll");
+  }
 
   const question = await prisma.question.create({
     data: {
@@ -56,42 +74,36 @@ export const activateQuestion = asyncHandler(
   async (req: Request, res: Response) => {
     const { code, questionId } = req.params;
 
-    const [poll, question] = await Promise.all([
-      prisma.poll.findUnique({ where: { code } }),
-      prisma.question.findUnique({
-        where: { id: questionId },
-        include: { options: true },
-      }),
-    ]);
+    // @ts-ignore
+    const userId = req.user.id;
 
-    if (!poll || !question) {
-      res.status(404);
-      throw new Error("Poll or question not found");
-    }
-
-    if (question.status === "ACTIVE") {
-      res.status(400);
-      throw new Error("Question already active");
-    }
-    await prisma.question.updateMany({
-      where: { pollId: poll.id, status: "ACTIVE" },
-      data: { status: "CLOSED" },
+    const poll = await prisma.poll.findUnique({
+      where: { code },
+      select: { id: true, creatorId: true },
     });
+
+    if (!poll || poll.creatorId !== userId) {
+      res.status(403);
+      throw new Error("Not authorized to activate questions in this poll");
+    }
 
     const activatedQuestion = await prisma.question.update({
       where: { id: questionId },
       data: { status: "ACTIVE" },
+      include: { options: true },
     });
+
     io.to(code).emit("question-activated", {
       question: {
         id: activatedQuestion.id,
-        text: question.text,
-        options: question.options,
-        timer: question.timer,
+        text: activatedQuestion.text,
+        options: activatedQuestion.options,
+        timer: activatedQuestion.timer,
       },
     });
+
     setTimeout(async () => {
-      const closedQuestion = await prisma.question.update({
+      await prisma.question.update({
         where: { id: questionId },
         data: { status: "CLOSED" },
       });
@@ -101,12 +113,24 @@ export const activateQuestion = asyncHandler(
         where: { questionId },
         _count: true,
       });
+      const correctOption = activatedQuestion.options.find(
+        (option) => option.isCorrect
+      );
+      const totalAnswers = results.reduce(
+        (sum, result) => sum + result._count,
+        0
+      );
+      const processedResults = results.map((result) => ({
+        ...result,
+        percentage: totalAnswers > 0 ? (result._count / totalAnswers) * 100 : 0,
+      }));
 
       io.to(code).emit("question-results", {
         questionId,
-        results,
+        results: processedResults,
+        correctOption: correctOption ? correctOption.id : null,
       });
-    }, question.timer * 1000);
+    }, activatedQuestion.timer * 1000);
 
     res.json(activatedQuestion);
   }
