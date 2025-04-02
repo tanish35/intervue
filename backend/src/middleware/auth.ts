@@ -33,6 +33,7 @@ async function requireAuth(req: Request, res: Response, next: NextFunction) {
       return;
     }
 
+    //@ts-ignore
     req.user = user;
     next();
   } catch (err) {
