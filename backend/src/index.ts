@@ -41,6 +41,11 @@ io.on("connection", (socket: Socket) => {
     socket.emit("message", `Message received: ${message}`);
   });
 
+  socket.on("join-poll", (code: string, userId: string) => {
+    socket.join(code);
+    console.log(`User ${userId} joined poll ${code}`);
+  });
+
   socket.on("disconnect", () => {
     console.log("A user disconnected");
   });

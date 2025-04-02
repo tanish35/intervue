@@ -37,6 +37,72 @@ export const createPoll = asyncHandler(async (req: Request, res: Response) => {
   res.json(poll);
 });
 
+export const joinPoll = asyncHandler(async (req: Request, res: Response) => {
+  const { code } = req.body;
+
+  //@ts-ignore
+  const username = req.user.username;
+  //@ts-ignore
+  const userId = req.user.id;
+
+  const poll = await prisma.poll.findUnique({
+    where: { code },
+    include: {
+      participants: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
+
+  if (!poll) {
+    res.status(404);
+    throw new Error("Poll not found");
+  }
+
+  // 2. Check if username already exists in this poll
+  const existingParticipant = poll.participants.find(
+    (participant) => participant.user.username === username
+  );
+
+  if (existingParticipant) {
+    res.status(200).json({
+      user: existingParticipant.user,
+      message: "User already exists",
+    });
+  }
+
+  const addedParticipant = await prisma.poll.update({
+    where: { code },
+    data: {
+      participants: {
+        create: {
+          user: { connect: { id: userId } },
+        },
+      },
+    },
+    include: {
+      participants: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
+  io.to(code).emit("new-participant", {
+    user: addedParticipant.participants[0].user,
+    poll: addedParticipant,
+  });
+  io.to(code).emit("poll-update", {
+    poll: addedParticipant,
+  });
+  res.status(200).json({
+    user: addedParticipant.participants[0].user,
+    message: "User added to poll",
+  });
+});
+
 export const addQuestion = asyncHandler(async (req: Request, res: Response) => {
   const { code } = req.params;
   const { text, options, timer } = req.body;
