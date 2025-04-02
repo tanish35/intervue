@@ -20,7 +20,7 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
   const user = await prisma.user.create({
     data: { username },
   });
-  const exp = Date.now() + 1000 * 60 * 60 * 5;
+  const exp = Date.now() + 1000 * 60 * 60 * 10;
   const token = jwt.sign({ sub: user.id, exp }, process.env.SECRET!);
   res.status(200).json({ token });
 });
