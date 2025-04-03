@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -8,24 +9,44 @@ import { Clock } from "lucide-react";
 
 export default function AnswerPoll() {
   const navigate = useNavigate();
-  const { username, pollRoom, submitAnswer, socket } = usePoll();
+  const { pollRoom, submitAnswer, socket } = usePoll();
   const [selectedOption, setSelectedOption] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
   const activeQuestion = pollRoom?.questions.find((q) => q.status === "ACTIVE");
 
+  // Fetch server time on component mount
   useEffect(() => {
-    if (!username || !pollRoom) {
+    const fetchServerTime = async () => {
+      try {
+        const response = await axios.get(`/api/poll/${pollRoom?.code}/time`);
+        setTimeLeft(response.data.remaining);
+      } catch (error) {
+        console.error("Error fetching server time:", error);
+        // Fallback to local timer if server fails
+        if (activeQuestion) setTimeLeft(activeQuestion.timer);
+      }
+    };
+
+    if (pollRoom?.code && activeQuestion) {
+      fetchServerTime();
+    }
+    if (pollRoom?.code) {
+      socket?.emit("join-poll", pollRoom.code);
+    }
+  }, [pollRoom?.code]); // Run only on initial mount
+
+  useEffect(() => {
+    if (!sessionStorage.getItem("authToken")) {
       navigate("/student/username");
+      return;
     }
 
-    if (activeQuestion) {
+    if (activeQuestion && timeLeft === 0) {
       setTimeLeft(activeQuestion.timer);
-      setSubmitted(false);
-      setSelectedOption("");
     }
-  }, [activeQuestion, username, pollRoom, navigate]);
+  }, [activeQuestion, navigate]);
 
   useEffect(() => {
     if (!activeQuestion) return;
@@ -40,7 +61,6 @@ export default function AnswerPoll() {
       });
     }, 1000);
 
-    // Listen for server-side question closure
     const handleQuestionResults = () => {
       navigate("/student/waiting");
     };
@@ -78,7 +98,7 @@ export default function AnswerPoll() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen w-screen bg-gray-50 p-4">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-6">
           <div className="inline-block bg-purple-600 text-white text-xs px-2 py-1 rounded-full mb-2">
@@ -117,15 +137,16 @@ export default function AnswerPoll() {
                   <div
                     key={option.id}
                     className="border rounded-md p-3 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setSelectedOption(option.id)} // Add this
                   >
                     <RadioGroupItem
                       value={option.id}
                       id={option.id}
-                      className="sr-only"
+                      className="peer sr-only" // Modified
                     />
                     <Label
                       htmlFor={option.id}
-                      className="flex items-center cursor-pointer font-medium"
+                      className="flex items-center cursor-pointer font-medium peer-data-[state=checked]:text-purple-600 peer-data-[state=checked]:font-bold" // Modified
                     >
                       {option.text}
                     </Label>

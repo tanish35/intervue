@@ -13,7 +13,7 @@ export default function JoinPoll() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!username) {
+    if (!sessionStorage.getItem("authToken")) {
       navigate("/student/username");
     }
   }, [username, navigate]);
@@ -69,7 +69,7 @@ export default function JoinPoll() {
               className={`w-full text-center text-lg font-medium tracking-wider ${
                 error ? "border-red-500" : ""
               }`}
-              maxLength={6}
+              maxLength={15}
               required
               disabled={isLoading}
             />

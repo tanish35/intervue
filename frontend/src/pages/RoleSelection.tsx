@@ -15,8 +15,8 @@ export default function RoleSelection() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md px-4">
+    <div className="min-h-screen w-screen flex items-center justify-center bg-gray-50">
+      <div className="w-screen max-w-none px-8">
         <div className="text-center mb-8">
           <div className="inline-block bg-purple-600 text-white text-xs px-2 py-1 rounded-full mb-2">
             Intervue Poll

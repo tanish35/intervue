@@ -6,6 +6,8 @@ import {
   activateQuestion,
   submitAnswer,
   getPollHistory,
+  getPoll,
+  getPollTime,
 } from "../controllers/poll.controller";
 import requireAuth from "../middleware/auth";
 
@@ -22,6 +24,8 @@ router.post(
   requireAuth,
   activateQuestion
 );
+router.get("/:code/time", getPollTime);
+router.get("/:code", requireAuth, getPoll);
 router.post("/:code/question/:questionId/answer", requireAuth, submitAnswer);
 
 // Poll history route

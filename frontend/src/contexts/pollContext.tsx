@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   type ReactNode,
+  act,
 } from "react";
 import io, { Socket } from "socket.io-client";
 import axios from "axios";
@@ -95,12 +96,40 @@ export function PollProvider({ children }: { children: ReactNode }) {
   const [authToken, setAuthToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("pollToken");
+    // Check both localStorage AND sessionStorage
+    const token =
+      localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
     if (token) {
       setAuthToken(token);
       initializeSocket(token);
+      loadPersistedPollState(token); // New function (see step 2)
     }
   }, []);
+
+  // Save poll state to localStorage
+  const persistPollState = (code: string) => {
+    localStorage.setItem("currentPoll", code);
+  };
+
+  // Load persisted poll state
+  const loadPersistedPollState = async (token: string) => {
+    const savedPollCode = localStorage.getItem("currentPoll");
+
+    if (savedPollCode) {
+      try {
+        const response = await axios.get(`/api/poll/${savedPollCode}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setPollRoom(response.data);
+        socket?.emit("join-poll", savedPollCode);
+      } catch (error) {
+        console.error("Error loading saved poll:", error);
+        localStorage.removeItem("currentPoll");
+      }
+    }
+  };
 
   const initializeSocket = (token: string) => {
     const newSocket = io(import.meta.env.VITE_API_URL, {
@@ -244,18 +273,32 @@ export function PollProvider({ children }: { children: ReactNode }) {
 
   const createPollRoom = async (): Promise<boolean> => {
     try {
+      let token = authToken;
+
+      if (!token) {
+        const storedToken = sessionStorage.getItem("authToken");
+        if (!storedToken) {
+          console.error("No auth token found!");
+          return false;
+        }
+        setAuthToken(storedToken);
+        token = storedToken;
+      }
       const response = await axios.post(
         "/api/poll",
-        { title: "New Poll" }, // Default title if none provided
+        { title: "New Poll" },
         {
           headers: {
-            Authorization: `Bearer ${authToken}`,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
 
+      console.log("Poll created:", response.data);
       setPollRoom(response.data);
+      persistPollState(response.data.code);
       setRole("teacher");
+      console.log("Poll room", pollRoom);
       socket?.emit("join-poll", response.data.code);
       return true; // Success
     } catch (error) {
@@ -279,6 +322,7 @@ export function PollProvider({ children }: { children: ReactNode }) {
 
       setPollRoom(response.data.poll);
       setRole("student");
+      persistPollState(code);
       socket?.emit("join-poll", code);
       return true; // Return true on success
     } catch (error) {
@@ -289,7 +333,8 @@ export function PollProvider({ children }: { children: ReactNode }) {
 
   const setUsername = (name: string) => {
     setUsernameState(name);
-    sessionStorage.setItem("username", name); // Store username in sessionStorage
+    sessionStorage.setItem("username", name);
+    // sessionStorage.setItem("authToken", authToken || "");
   };
 
   // Create new question (Teacher only)
@@ -298,7 +343,9 @@ export function PollProvider({ children }: { children: ReactNode }) {
     options: string[],
     timer: number
   ) => {
-    if (!pollRoom || role !== "teacher") return;
+    // console.log("Creating question with text:", text);
+    if (!pollRoom) return;
+    console.log("Creating question with text:", text);
 
     try {
       const response = await axios.post(
@@ -319,6 +366,7 @@ export function PollProvider({ children }: { children: ReactNode }) {
             }
           : null
       );
+      activateQuestion(response.data.id);
     } catch (error) {
       console.error("Error creating question:", error);
       throw error;
@@ -327,7 +375,7 @@ export function PollProvider({ children }: { children: ReactNode }) {
 
   // Activate question (Teacher only)
   const activateQuestion = async (questionId: string) => {
-    if (!pollRoom || role !== "teacher") return;
+    if (!pollRoom) return;
 
     try {
       await axios.post(
@@ -401,6 +449,9 @@ export function PollProvider({ children }: { children: ReactNode }) {
 
       if (response.status === 200) {
         setUsername(name);
+        // console.log("Username set successfully:", response.data);
+        sessionStorage.setItem("authToken", response.data.token);
+        setAuthToken(response.data.token);
         return true;
       } else {
         console.error("Failed to set username:", response.data);

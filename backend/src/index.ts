@@ -37,7 +37,7 @@ import userRouter from "./routes/user.routes";
 app.use("/api/user", userRouter);
 
 io.on("connection", (socket: Socket) => {
-  console.log("A user connected");
+  console.log(`✅ Client connected: ${socket.id}`);
 
   socket.on("message", (message) => {
     console.log("Message received:", message);
@@ -46,11 +46,11 @@ io.on("connection", (socket: Socket) => {
 
   socket.on("join-poll", (code: string, userId: string) => {
     socket.join(code);
-    console.log(`User ${userId} joined poll ${code}`);
+    console.log(`🚪 Client ${socket.id} joined room: ${code}`);
   });
 
   socket.on("disconnect", () => {
-    console.log("A user disconnected");
+    console.log(`❌ Client disconnected: ${socket.id}`);
   });
 });
 

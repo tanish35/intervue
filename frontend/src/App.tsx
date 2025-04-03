@@ -6,7 +6,7 @@ import { PollProvider } from "./contexts/PollContext";
 import RoleSelection from "./pages/RoleSelection";
 import TeacherUsername from "./pages/teacher/Username";
 import CreatePollRoom from "./pages/teacher/CreatePollRoom";
-import TeacherDashboard from "./pages/teacher/DashBoard";
+import TeacherDashboard from "./pages/teacher/Dashboard";
 import PollHistory from "./pages/teacher/PollHistory";
 import StudentUsername from "./pages/student/Username";
 import JoinPoll from "./pages/student/JoinPoll";

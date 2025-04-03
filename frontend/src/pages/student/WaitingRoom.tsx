@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePoll } from "@/contexts/PollContext";
@@ -10,9 +8,12 @@ export default function WaitingRoom() {
   const { username, pollRoom, socket } = usePoll();
 
   useEffect(() => {
-    if (!username || !pollRoom) {
+    if (!sessionStorage.getItem("authToken")) {
       navigate("/student/username");
       return;
+    }
+    if (pollRoom?.code) {
+      socket?.emit("join-poll", pollRoom.code);
     }
     const handleQuestionActivated = (data: {
       id: string;

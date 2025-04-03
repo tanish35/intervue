@@ -1,7 +1,6 @@
-"use client";
-
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { Clock, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,9 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+// Import your context
 import { usePoll } from "@/contexts/PollContext";
-import { Clock, Users } from "lucide-react";
-import { Link } from "react-router-dom";
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
@@ -30,9 +29,10 @@ export default function TeacherDashboard() {
 
   // Redirect if username or pollRoom is missing
   useEffect(() => {
-    if (!username || !pollRoom) {
+    if (!sessionStorage.getItem("authToken")) {
       navigate("/teacher/username");
     }
+    console.log("Poll Room:", pollRoom);
   }, [username, pollRoom, navigate]);
 
   const addOption = () => {
@@ -47,6 +47,7 @@ export default function TeacherDashboard() {
 
   const handleCreateQuestion = async () => {
     if (questionText && options.filter((opt) => opt.trim()).length >= 2) {
+      // console.log("Creating question with text:", questionText);
       await createQuestion(
         questionText,
         options.filter((opt) => opt.trim()),
@@ -70,7 +71,9 @@ export default function TeacherDashboard() {
   //     await kickParticipant(participantId);
   //   };
 
-  if (!pollRoom) return null;
+  if (!pollRoom) {
+    return <div>Loading poll room...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -128,9 +131,12 @@ export default function TeacherDashboard() {
                       <Clock className="h-4 w-4 mr-1" />
                       <span>{pollRoom.activeQuestion.timer} seconds</span>
                     </div>
-                    {/* <Button onClick={handleEndQuestion} variant="destructive">
-                      End Question
-                    </Button> */}
+                    {/* Uncomment the button below if you want to enable ending the question */}
+                    {/* 
+                  <Button onClick={handleEndQuestion} variant="destructive">
+                    End Question
+                  </Button> 
+                  */}
                   </div>
                 </CardContent>
               </Card>
@@ -216,30 +222,31 @@ export default function TeacherDashboard() {
                     <span>{pollRoom.participants.length} joined</span>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  {pollRoom.participants.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-4">
-                      No participants have joined yet.
-                    </p>
-                  ) : (
-                    pollRoom.participants.map((participant) => (
-                      <div
-                        key={participant.id}
-                        className="flex justify-between items-center p-2 border-b"
-                      >
-                        <span>{participant.username}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          //   onClick={() => handleKickParticipant(participant.id)}
-                        >
-                          Kick out
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
+                {pollRoom.participants.length === 0 ? (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    No participants have joined yet.
+                  </p>
+                ) : (
+                  pollRoom.participants.map((participant) => (
+                    <div
+                      key={participant.id}
+                      className="flex justify-between items-center p-2 border-b"
+                    >
+                      <span>{participant.username}</span>
+                      {/* Uncomment the button below if you want to enable kicking participants */}
+                      {/* 
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleKickParticipant(participant.id)}
+                    >
+                      Kick out
+                    </Button> 
+                    */}
+                    </div>
+                  ))
+                )}
               </CardContent>
             </Card>
           </TabsContent>

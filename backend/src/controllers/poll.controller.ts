@@ -2,11 +2,7 @@ import asyncHandler from "express-async-handler";
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { Server } from "socket.io";
-
-let io: Server;
-export const setSocketIOInstance = (socketIOInstance: Server) => {
-  io = socketIOInstance;
-};
+import { io } from "../index";
 
 export const createPoll = asyncHandler(async (req: Request, res: Response) => {
   const code = `POLL-${Math.random()
@@ -42,6 +38,30 @@ export const createPoll = asyncHandler(async (req: Request, res: Response) => {
     if (room === code) console.log(`Poll room ${code} created`);
   });
 
+  res.json(poll);
+});
+
+export const getPoll = asyncHandler(async (req: Request, res: Response) => {
+  const { code } = req.params;
+  const poll = await prisma.poll.findUnique({
+    where: { code },
+    include: {
+      questions: {
+        include: {
+          options: true,
+        },
+      },
+      participants: {
+        include: {
+          user: true,
+        },
+      },
+    },
+  });
+  if (!poll) {
+    res.status(404);
+    throw new Error("Poll not found");
+  }
   res.json(poll);
 });
 
@@ -166,6 +186,7 @@ export const addQuestion = asyncHandler(async (req: Request, res: Response) => {
 export const activateQuestion = asyncHandler(
   async (req: Request, res: Response) => {
     const { code, questionId } = req.params;
+    // console.log("Hello");
 
     // @ts-ignore
     const userId = req.user.id;
@@ -186,6 +207,8 @@ export const activateQuestion = asyncHandler(
       include: { options: true },
     });
 
+    console.log(`⚡ Emitting "question-activated" to room: ${code}`);
+
     io.to(code).emit("question-activated", {
       question: {
         id: activatedQuestion.id,
@@ -194,6 +217,10 @@ export const activateQuestion = asyncHandler(
         timer: activatedQuestion.timer,
       },
     });
+
+    console.log(`✅ "question-activated" event emitted to room: ${code}`);
+
+    // console.log("code", code);
 
     setTimeout(async () => {
       await prisma.question.update({
@@ -228,6 +255,28 @@ export const activateQuestion = asyncHandler(
     res.json(activatedQuestion);
   }
 );
+
+export const getPollTime = asyncHandler(async (req, res) => {
+  const { code } = req.params;
+
+  const poll = await prisma.poll.findUnique({
+    where: { code },
+    include: { questions: { where: { status: "ACTIVE" } } },
+  });
+
+  if (!poll || !poll.questions.length) {
+    res.status(404).json({ error: "No active question" });
+    return;
+  }
+
+  const question = poll.questions[0];
+  const now = new Date().valueOf();
+  const expiresAt = new Date(question.createdAt);
+  expiresAt.setSeconds(expiresAt.getSeconds() + question.timer);
+  const expiresAt1 = expiresAt.valueOf();
+  const remaining = Math.floor((expiresAt1 - now) / 1000);
+  res.json({ remaining: Math.max(0, remaining) });
+});
 
 export const submitAnswer = asyncHandler(
   async (req: Request, res: Response) => {
