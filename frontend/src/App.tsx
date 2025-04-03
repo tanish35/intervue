@@ -1,35 +1,44 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "./components/ThemeProvider";
+import { Toaster } from "@/components/ui/sonner";
+import { PollProvider } from "./contexts/PollContext";
+
+import RoleSelection from "./pages/RoleSelection";
+import TeacherUsername from "./pages/teacher/Username";
+import CreatePollRoom from "./pages/teacher/CreatePollRoom";
+import TeacherDashboard from "./pages/teacher/DashBoard";
+import PollHistory from "./pages/teacher/PollHistory";
+import StudentUsername from "./pages/student/Username";
+import JoinPoll from "./pages/student/JoinPoll";
+import WaitingRoom from "./pages/student/WaitingRoom";
+import AnswerPoll from "./pages/student/AnswerPoll";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <ThemeProvider defaultTheme="light">
+      <PollProvider>
+        <Router>
+          <Routes>
+            {/* Common routes */}
+            <Route path="/" element={<RoleSelection />} />
+
+            {/* Teacher routes */}
+            <Route path="/teacher/username" element={<TeacherUsername />} />
+            <Route path="/teacher/create-room" element={<CreatePollRoom />} />
+            <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
+            <Route path="/teacher/history" element={<PollHistory />} />
+
+            {/* Student routes */}
+            <Route path="/student/username" element={<StudentUsername />} />
+            <Route path="/student/join" element={<JoinPoll />} />
+            <Route path="/student/waiting" element={<WaitingRoom />} />
+            <Route path="/student/answer" element={<AnswerPoll />} />
+          </Routes>
+        </Router>
+        <Toaster />
+      </PollProvider>
+    </ThemeProvider>
+  );
 }
 
-export default App
+export default App;

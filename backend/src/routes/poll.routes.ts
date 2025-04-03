@@ -1,22 +1,30 @@
 import express from "express";
-import requireAuth from "../middleware/auth";
-
 import {
   createPoll,
+  joinPoll,
   addQuestion,
   activateQuestion,
   submitAnswer,
+  getPollHistory,
 } from "../controllers/poll.controller";
+import requireAuth from "../middleware/auth";
 
-const pollRouter = express.Router();
+const router = express.Router();
 
-pollRouter.route("/").post(requireAuth, createPoll);
-pollRouter.route("/:code/question").post(requireAuth, addQuestion);
-pollRouter
-  .route("/:code/question/:questionId/activate")
-  .post(requireAuth, activateQuestion);
-pollRouter
-  .route("/:code/question/:questionId/answer")
-  .post(requireAuth, submitAnswer);
+// Poll management routes
+router.post("/", requireAuth, createPoll);
+router.post("/join", requireAuth, joinPoll);
 
-export default pollRouter;
+// Question management routes
+router.post("/:code/question", requireAuth, addQuestion);
+router.post(
+  "/:code/question/:questionId/activate",
+  requireAuth,
+  activateQuestion
+);
+router.post("/:code/question/:questionId/answer", requireAuth, submitAnswer);
+
+// Poll history route
+router.get("/:code/history", requireAuth, getPollHistory);
+
+export default router;

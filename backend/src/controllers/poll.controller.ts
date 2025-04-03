@@ -1,7 +1,6 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response } from "express";
 import prisma from "../lib/prisma";
-// import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
 
 let io: Server;
@@ -20,12 +19,21 @@ export const createPoll = asyncHandler(async (req: Request, res: Response) => {
 
   const poll = await prisma.poll.create({
     data: {
-      title: req.body.title,
+      title: req.body.title || "New Poll", // Add default title if none provided
       status: "ACTIVE",
       code,
       creator: { connect: { id: userId } },
+    },
+    include: {
       questions: {
-        create: [],
+        include: {
+          options: true,
+        },
+      },
+      participants: {
+        include: {
+          user: true,
+        },
       },
     },
   });
@@ -48,6 +56,11 @@ export const joinPoll = asyncHandler(async (req: Request, res: Response) => {
   const poll = await prisma.poll.findUnique({
     where: { code },
     include: {
+      questions: {
+        include: {
+          options: true,
+        },
+      },
       participants: {
         include: {
           user: true,
@@ -61,19 +74,27 @@ export const joinPoll = asyncHandler(async (req: Request, res: Response) => {
     throw new Error("Poll not found");
   }
 
-  // 2. Check if username already exists in this poll
+  if (poll.status === "CLOSED") {
+    res.status(400);
+    throw new Error("This poll is closed");
+  }
+
+  // Check if username already exists in this poll
   const existingParticipant = poll.participants.find(
-    (participant) => participant.user.username === username
+    (participant) => participant.userId === userId
   );
 
   if (existingParticipant) {
+    // Return existing data instead of creating duplicate
     res.status(200).json({
-      user: existingParticipant.user,
-      message: "User already exists",
+      poll,
+      message: "User already joined this poll",
     });
+    return;
   }
 
-  const addedParticipant = await prisma.poll.update({
+  // Add participant to poll
+  const updatedPoll = await prisma.poll.update({
     where: { code },
     data: {
       participants: {
@@ -83,6 +104,11 @@ export const joinPoll = asyncHandler(async (req: Request, res: Response) => {
       },
     },
     include: {
+      questions: {
+        include: {
+          options: true,
+        },
+      },
       participants: {
         include: {
           user: true,
@@ -90,17 +116,18 @@ export const joinPoll = asyncHandler(async (req: Request, res: Response) => {
       },
     },
   });
+
+  // Notify all users in room about new participant
   io.to(code).emit("new-participant", {
-    user: addedParticipant.participants[0].user,
-    poll: addedParticipant,
+    user: { id: userId, username },
+    poll: updatedPoll,
   });
-  io.to(code).emit("poll-update", {
-    poll: addedParticipant,
-  });
+
   res.status(200).json({
-    user: addedParticipant.participants[0].user,
-    message: "User added to poll",
+    poll: updatedPoll,
+    message: "Successfully joined poll",
   });
+  return;
 });
 
 export const addQuestion = asyncHandler(async (req: Request, res: Response) => {
@@ -244,5 +271,96 @@ export const submitAnswer = asyncHandler(
     });
 
     res.json(answer);
+  }
+);
+
+// Get poll history (closed questions with results)
+export const getPollHistory = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { code } = req.params;
+
+    // @ts-ignore
+    const userId = req.user.id;
+
+    const poll = await prisma.poll.findUnique({
+      where: { code },
+      include: {
+        participants: true,
+      },
+    });
+
+    if (!poll) {
+      res.status(404);
+      throw new Error("Poll not found");
+    }
+
+    // Check if user is creator or participant
+    const isCreator = poll.creatorId === userId;
+    const isParticipant = poll.participants.some((p) => p.userId === userId);
+
+    if (!isCreator && !isParticipant) {
+      res.status(403);
+      throw new Error("Not authorized to view this poll");
+    }
+
+    // Get closed questions with their options and answers
+    const closedQuestions = await prisma.question.findMany({
+      where: {
+        pollId: poll.id,
+        status: "CLOSED",
+      },
+      include: {
+        options: true,
+        answers: {
+          select: {
+            optionId: true,
+            userId: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    // Process questions to include result statistics
+    const questionsWithResults = closedQuestions.map((question) => {
+      const totalAnswers = question.answers.length;
+      const options = question.options.map((option) => {
+        const optionAnswers = question.answers.filter(
+          (a) => a.optionId === option.id
+        );
+        const answerCount = optionAnswers.length;
+        const percentage =
+          totalAnswers > 0 ? (answerCount / totalAnswers) * 100 : 0;
+
+        return {
+          ...option,
+          _count: answerCount,
+          percentage,
+        };
+      });
+
+      // Find user's answer if they're a participant
+      const userAnswer = isParticipant
+        ? question.answers.find((a) => a.userId === userId)?.optionId
+        : null;
+
+      return {
+        id: question.id,
+        text: question.text,
+        timer: question.timer,
+        status: question.status,
+        options: options,
+        userAnswerId: userAnswer,
+      };
+    });
+
+    res.json({
+      pollId: poll.id,
+      code: poll.code,
+      title: poll.title,
+      history: questionsWithResults,
+    });
   }
 );

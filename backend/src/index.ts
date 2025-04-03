@@ -33,6 +33,9 @@ app.use(
 import pollRouter from "./routes/poll.routes";
 app.use("/api/poll", pollRouter);
 
+import userRouter from "./routes/user.routes";
+app.use("/api/user", userRouter);
+
 io.on("connection", (socket: Socket) => {
   console.log("A user connected");
 
