@@ -56,6 +56,7 @@ export default function TeacherDashboard() {
       setQuestionText("");
       setOptions(["", ""]);
       setTimer("60");
+      setActiveTab("question"); // Ensure we switch back to question tab
     }
   };
 
@@ -163,13 +164,18 @@ export default function TeacherDashboard() {
                       />
                     ))}
                     {/* Add More Options */}
-                    <Button variant="outline" size="sm" onClick={addOption}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={addOption}
+                      className="bg-white text-purple-600 border-purple-600 hover:bg-purple-100"
+                    >
                       Add More Option
                     </Button>
 
                     {/* Timer Selector */}
                     <Select value={timer} onValueChange={setTimer}>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white">
                         <SelectValue placeholder="Select timer duration" />
                       </SelectTrigger>
                       <SelectContent>
@@ -188,6 +194,7 @@ export default function TeacherDashboard() {
                         !questionText ||
                         options.filter((opt) => opt.trim()).length < 2
                       }
+                      className="bg-purple-600 text-white hover:bg-purple-700"
                     >
                       Create Question
                     </Button>
@@ -201,6 +208,7 @@ export default function TeacherDashboard() {
                             pollRoom.questions[pollRoom.questions.length - 1].id
                           )
                         }
+                        className="bg-white text-purple-600 border-purple-600 hover:bg-purple-100"
                       >
                         Ask Question
                       </Button>
