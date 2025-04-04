@@ -18,7 +18,6 @@ async function requireAuth(
 ): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
-    // console.log("Authorization Header:", authHeader);
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       res
@@ -28,7 +27,7 @@ async function requireAuth(
     }
 
     const token = authHeader.split(" ")[1];
-    // console.log("Token:", token);
+    
     if (!token) {
       res.status(401).json({ message: "Token missing" });
       return;

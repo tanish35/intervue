@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Import your context
 import { usePoll } from "@/contexts/PollContext";
 
 export default function TeacherDashboard() {
@@ -27,7 +26,6 @@ export default function TeacherDashboard() {
   const [timer, setTimer] = useState("60");
   const [activeTab, setActiveTab] = useState("question");
 
-  // Redirect if username or pollRoom is missing
   useEffect(() => {
     if (!sessionStorage.getItem("authToken")) {
       navigate("/teacher/username");
@@ -47,7 +45,7 @@ export default function TeacherDashboard() {
 
   const handleCreateQuestion = async () => {
     if (questionText && options.filter((opt) => opt.trim()).length >= 2) {
-      // console.log("Creating question with text:", questionText);
+      
       await createQuestion(
         questionText,
         options.filter((opt) => opt.trim()),
@@ -56,21 +54,13 @@ export default function TeacherDashboard() {
       setQuestionText("");
       setOptions(["", ""]);
       setTimer("60");
-      setActiveTab("question"); // Ensure we switch back to question tab
+      setActiveTab("question"); 
     }
   };
 
   const handleStartQuestion = async (questionId: string) => {
     await activateQuestion(questionId);
   };
-
-  //   const handleEndQuestion = async () => {
-  //     await endQuestion();
-  //   };
-
-  //   const handleKickParticipant = async (participantId: string) => {
-  //     await kickParticipant(participantId);
-  //   };
 
   if (!pollRoom) {
     return <div>Loading poll room...</div>;
@@ -108,7 +98,7 @@ export default function TeacherDashboard() {
             <TabsTrigger value="participants">Participants</TabsTrigger>
           </TabsList>
 
-          {/* Question Tab */}
+          {}
           <TabsContent value="question">
             {pollRoom.activeQuestion ? (
               <Card>
@@ -132,28 +122,24 @@ export default function TeacherDashboard() {
                       <Clock className="h-4 w-4 mr-1" />
                       <span>{pollRoom.activeQuestion.timer} seconds</span>
                     </div>
-                    {/* Uncomment the button below if you want to enable ending the question */}
-                    {/* 
-                  <Button onClick={handleEndQuestion} variant="destructive">
-                    End Question
-                  </Button> 
-                  */}
+                    {}
+                    {}
                   </div>
                 </CardContent>
               </Card>
             ) : (
               <>
-                {/* Create Question Form */}
+                {}
                 <Card>
                   <CardContent className="p-4 space-y-4">
-                    {/* Question Input */}
+                    {}
                     <Input
                       id="question"
                       value={questionText}
                       onChange={(e) => setQuestionText(e.target.value)}
                       placeholder="Type your question here"
                     />
-                    {/* Options Input */}
+                    {}
                     {options.map((option, index) => (
                       <Input
                         key={index}
@@ -163,7 +149,7 @@ export default function TeacherDashboard() {
                         className="mb-2"
                       />
                     ))}
-                    {/* Add More Options */}
+                    {}
                     <Button
                       variant="outline"
                       size="sm"
@@ -173,7 +159,7 @@ export default function TeacherDashboard() {
                       Add More Option
                     </Button>
 
-                    {/* Timer Selector */}
+                    {}
                     <Select value={timer} onValueChange={setTimer}>
                       <SelectTrigger className="bg-white">
                         <SelectValue placeholder="Select timer duration" />
@@ -187,7 +173,7 @@ export default function TeacherDashboard() {
                       </SelectContent>
                     </Select>
 
-                    {/* Create Question Button */}
+                    {}
                     <Button
                       onClick={handleCreateQuestion}
                       disabled={
@@ -199,7 +185,7 @@ export default function TeacherDashboard() {
                       Create Question
                     </Button>
 
-                    {/* Ask Question Button */}
+                    {}
                     {pollRoom.questions.length > 0 && (
                       <Button
                         variant="outline"
@@ -219,7 +205,7 @@ export default function TeacherDashboard() {
             )}
           </TabsContent>
 
-          {/* Participants Tab */}
+          {}
           <TabsContent value="participants">
             <Card>
               <CardContent className="p-4">
@@ -241,17 +227,8 @@ export default function TeacherDashboard() {
                       className="flex justify-between items-center p-2 border-b"
                     >
                       <span>{participant.username}</span>
-                      {/* Uncomment the button below if you want to enable kicking participants */}
-                      {/* 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleKickParticipant(participant.id)}
-                    >
-                      Kick out
-                    </Button> 
-                    */}
+                      {}
+                      {}
                     </div>
                   ))
                 )}

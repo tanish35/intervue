@@ -95,23 +95,20 @@ export function PollProvider({ children }: { children: ReactNode }) {
   const [authToken, setAuthToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check both localStorage AND sessionStorage
     const token =
       localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
     if (token) {
       setAuthToken(token);
       initializeSocket(token);
-      loadPersistedPollState(token); // New function (see step 2)
+      loadPersistedPollState(token);
     }
   }, []);
 
-  // Save poll state to localStorage
   const persistPollState = (code: string) => {
     localStorage.setItem("currentPoll", code);
   };
 
-  // Load persisted poll state
   const loadPersistedPollState = async (token: string) => {
     const savedPollCode = localStorage.getItem("currentPoll");
 
@@ -143,7 +140,6 @@ export function PollProvider({ children }: { children: ReactNode }) {
       setPollRoom((prev) => {
         if (!prev) return null;
 
-        // Ensure we're using the correct types
         const updatedQuestions = prev.questions.map((q) =>
           q.id === data.question.id ? { ...q, status: "ACTIVE" as const } : q
         );
@@ -173,13 +169,11 @@ export function PollProvider({ children }: { children: ReactNode }) {
         setPollRoom((prev) => {
           if (!prev) return null;
 
-          // Find the question to update
           const updatedQuestion = prev.questions.find(
             (q) => q.id === data.questionId
           );
           if (!updatedQuestion) return prev;
 
-          // Create updated question with results and ensure proper types
           const questionWithResults: Question = {
             ...updatedQuestion,
             status: "CLOSED" as const,
@@ -190,45 +184,38 @@ export function PollProvider({ children }: { children: ReactNode }) {
             })),
           };
 
-          // Update both questions and history
           const updatedQuestions = prev.questions.map((q) =>
             q.id === data.questionId ? questionWithResults : q
           );
 
-          // Ensure history array exists
           const prevHistory = prev.history || [];
 
-          // Check if question is already in history
           const isAlreadyInHistory = prevHistory.some(
             (h) => h.id === data.questionId
           );
 
-          // Update or add to history
           const updatedHistory = isAlreadyInHistory
             ? prevHistory.map((h) =>
                 h.id === data.questionId ? questionWithResults : h
               )
             : [...prevHistory, questionWithResults];
 
-          // Return a properly typed PollRoom object
           return {
             ...prev,
             questions: updatedQuestions,
             history: updatedHistory,
-            activeQuestion: null, // Clear active question when results come in
+            activeQuestion: null,
           };
         });
       }
     );
 
-    // Add handler for new participants
     newSocket.on(
       "new-participant",
       (data: { user: { id: string; username: string }; poll: any }) => {
         setPollRoom((prev) => {
           if (!prev) return null;
 
-          // Ensure we don't add duplicate participants
           const existingParticipantIds = prev.participants.map((p) => p.id);
           const updatedParticipants = existingParticipantIds.includes(
             data.user.id
@@ -239,7 +226,6 @@ export function PollProvider({ children }: { children: ReactNode }) {
                 { id: data.user.id, username: data.user.username },
               ];
 
-          // Return properly typed PollRoom
           return {
             ...prev,
             participants: updatedParticipants,
@@ -248,16 +234,14 @@ export function PollProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // Add handler for poll updates
     newSocket.on("poll-update", (data: { poll: Partial<PollRoom> }) => {
       setPollRoom((prev) => {
         if (!prev) return null;
 
-        // Ensure we're returning a proper PollRoom type
         return {
           ...prev,
-          ...(data.poll as any), // Use type assertion here since we can't guarantee data.poll structure
-          // Preserve local state that might not be in the server update
+          ...(data.poll as any),
+
           activeQuestion: prev.activeQuestion,
           history: prev.history || [],
         };
@@ -299,14 +283,13 @@ export function PollProvider({ children }: { children: ReactNode }) {
       setRole("teacher");
       console.log("Poll room", pollRoom);
       socket?.emit("join-poll", response.data.code);
-      return true; // Success
+      return true;
     } catch (error) {
       console.error("Error creating poll:", error);
-      return false; // Failure
+      return false;
     }
   };
 
-  // Join existing poll room
   const joinPollRoom = async (code: string): Promise<boolean> => {
     try {
       const response = await axios.post(
@@ -323,26 +306,23 @@ export function PollProvider({ children }: { children: ReactNode }) {
       setRole("student");
       persistPollState(code);
       socket?.emit("join-poll", code);
-      return true; // Return true on success
+      return true;
     } catch (error) {
       console.error("Error joining poll:", error);
-      return false; // Return false on failure
+      return false;
     }
   };
 
   const setUsername = (name: string) => {
     setUsernameState(name);
     sessionStorage.setItem("username", name);
-    // sessionStorage.setItem("authToken", authToken || "");
   };
 
-  // Create new question (Teacher only)
   const createQuestion = async (
     text: string,
     options: string[],
     timer: number
   ) => {
-    // console.log("Creating question with text:", text);
     if (!pollRoom) return;
     console.log("Creating question with text:", text);
 
@@ -372,7 +352,6 @@ export function PollProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Activate question (Teacher only)
   const activateQuestion = async (questionId: string) => {
     if (!pollRoom) return;
 
@@ -383,11 +362,9 @@ export function PollProvider({ children }: { children: ReactNode }) {
         { headers: { Authorization: `Bearer ${authToken}` } }
       );
 
-      // Update local state optimistically with proper typing
       setPollRoom((prev) => {
         if (!prev) return null;
 
-        // Find the question that was activated
         const question = prev.questions.find((q) => q.id === questionId);
         if (!question) return prev;
 
@@ -396,12 +373,10 @@ export function PollProvider({ children }: { children: ReactNode }) {
           status: "ACTIVE" as const,
         };
 
-        // Update the question status in the questions array
         const updatedQuestions = prev.questions.map((q) =>
           q.id === questionId ? activeQuestion : q
         );
 
-        // Return a properly typed PollRoom
         return {
           ...prev,
           activeQuestion,
@@ -414,7 +389,6 @@ export function PollProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Submit answer (Student only)
   const submitAnswer = async (questionId: string, optionId: string) => {
     if (!pollRoom || role !== "student") return;
 
@@ -437,7 +411,7 @@ export function PollProvider({ children }: { children: ReactNode }) {
   const handleSetUsername = async (name: string): Promise<boolean> => {
     try {
       const response = await axios.post(
-        "/api/user", // Backend route to store username
+        "/api/user",
         { username: name },
         {
           headers: {
@@ -448,7 +422,7 @@ export function PollProvider({ children }: { children: ReactNode }) {
 
       if (response.status === 200) {
         setUsername(name);
-        // console.log("Username set successfully:", response.data);
+
         sessionStorage.setItem("authToken", response.data.token);
         setAuthToken(response.data.token);
         return true;
@@ -462,7 +436,6 @@ export function PollProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Get poll history (closed questions with results)
   const getPollHistory = async (code: string): Promise<PollHistory | null> => {
     try {
       const response = await axios.get(`/api/poll/${code}/history`, {

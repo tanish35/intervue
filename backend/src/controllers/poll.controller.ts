@@ -10,12 +10,11 @@ export const createPoll = asyncHandler(async (req: Request, res: Response) => {
     .substring(2, 8)
     .toUpperCase()}`;
 
-  // @ts-ignore
   const userId = req.user.id;
 
   const poll = await prisma.poll.create({
     data: {
-      title: req.body.title || "New Poll", // Add default title if none provided
+      title: req.body.title || "New Poll", 
       status: "ACTIVE",
       code,
       creator: { connect: { id: userId } },
@@ -68,9 +67,8 @@ export const getPoll = asyncHandler(async (req: Request, res: Response) => {
 export const joinPoll = asyncHandler(async (req: Request, res: Response) => {
   const { code } = req.body;
 
-  //@ts-ignore
   const username = req.user.username;
-  //@ts-ignore
+  
   const userId = req.user.id;
 
   const poll = await prisma.poll.findUnique({
@@ -99,13 +97,12 @@ export const joinPoll = asyncHandler(async (req: Request, res: Response) => {
     throw new Error("This poll is closed");
   }
 
-  // Check if username already exists in this poll
   const existingParticipant = poll.participants.find(
     (participant) => participant.userId === userId
   );
 
   if (existingParticipant) {
-    // Return existing data instead of creating duplicate
+    
     res.status(200).json({
       poll,
       message: "User already joined this poll",
@@ -113,7 +110,6 @@ export const joinPoll = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  // Add participant to poll
   const updatedPoll = await prisma.poll.update({
     where: { code },
     data: {
@@ -137,7 +133,6 @@ export const joinPoll = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
-  // Notify all users in room about new participant
   io.to(code).emit("new-participant", {
     user: { id: userId, username },
     poll: updatedPoll,
@@ -154,7 +149,6 @@ export const addQuestion = asyncHandler(async (req: Request, res: Response) => {
   const { code } = req.params;
   const { text, options, timer } = req.body;
 
-  // @ts-ignore
   const userId = req.user.id;
 
   const poll = await prisma.poll.findUnique({
@@ -186,9 +180,7 @@ export const addQuestion = asyncHandler(async (req: Request, res: Response) => {
 export const activateQuestion = asyncHandler(
   async (req: Request, res: Response) => {
     const { code, questionId } = req.params;
-    // console.log("Hello");
 
-    // @ts-ignore
     const userId = req.user.id;
 
     const poll = await prisma.poll.findUnique({
@@ -219,8 +211,6 @@ export const activateQuestion = asyncHandler(
     });
 
     console.log(`✅ "question-activated" event emitted to room: ${code}`);
-
-    // console.log("code", code);
 
     setTimeout(async () => {
       await prisma.question.update({
@@ -283,7 +273,6 @@ export const submitAnswer = asyncHandler(
     const { code, questionId } = req.params;
     const { optionId } = req.body;
 
-    //@ts-ignore
     const userId = req.user.id;
 
     const [question, existingAnswer] = await Promise.all([
@@ -323,12 +312,10 @@ export const submitAnswer = asyncHandler(
   }
 );
 
-// Get poll history (closed questions with results)
 export const getPollHistory = asyncHandler(
   async (req: Request, res: Response) => {
     const { code } = req.params;
 
-    // @ts-ignore
     const userId = req.user.id;
 
     const poll = await prisma.poll.findUnique({
@@ -343,7 +330,6 @@ export const getPollHistory = asyncHandler(
       throw new Error("Poll not found");
     }
 
-    // Check if user is creator or participant
     const isCreator = poll.creatorId === userId;
     const isParticipant = poll.participants.some((p) => p.userId === userId);
 
@@ -352,7 +338,6 @@ export const getPollHistory = asyncHandler(
       throw new Error("Not authorized to view this poll");
     }
 
-    // Get closed questions with their options and answers
     const closedQuestions = await prisma.question.findMany({
       where: {
         pollId: poll.id,
@@ -372,7 +357,6 @@ export const getPollHistory = asyncHandler(
       },
     });
 
-    // Process questions to include result statistics
     const questionsWithResults = closedQuestions.map((question) => {
       const totalAnswers = question.answers.length;
       const options = question.options.map((option) => {
@@ -390,7 +374,6 @@ export const getPollHistory = asyncHandler(
         };
       });
 
-      // Find user's answer if they're a participant
       const userAnswer = isParticipant
         ? question.answers.find((a) => a.userId === userId)?.optionId
         : null;

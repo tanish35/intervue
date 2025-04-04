@@ -19,16 +19,16 @@ function App() {
       <PollProvider>
         <Router>
           <Routes>
-            {/* Common routes */}
+            {}
             <Route path="/" element={<RoleSelection />} />
 
-            {/* Teacher routes */}
+            {}
             <Route path="/teacher/username" element={<TeacherUsername />} />
             <Route path="/teacher/create-room" element={<CreatePollRoom />} />
             <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
             <Route path="/teacher/history" element={<PollHistory />} />
 
-            {/* Student routes */}
+            {}
             <Route path="/student/username" element={<StudentUsername />} />
             <Route path="/student/join" element={<JoinPoll />} />
             <Route path="/student/waiting" element={<WaitingRoom />} />

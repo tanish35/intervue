@@ -4,11 +4,9 @@ import App from "./App";
 import "./index.css";
 import axios from "axios";
 
-// Configure axios defaults
-axios.defaults.baseURL = "http://localhost:3000";
+axios.defaults.baseURL = "http:
 axios.defaults.withCredentials = true;
 
-// Render React application
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <App />

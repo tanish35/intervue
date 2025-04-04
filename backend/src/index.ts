@@ -13,17 +13,16 @@ const io = new Server(httpServer, {
   },
 });
 
-const FRONTEND_URI = process.env.FRONTEND_URI || "http://localhost:5173";
+const FRONTEND_URI = process.env.FRONTEND_URI || "http:
 const PORT = process.env.PORT || 3000;
 
-// Middleware setup
 app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
+      "http:
+      "http:
       `${FRONTEND_URI}`,
     ],
     credentials: true,

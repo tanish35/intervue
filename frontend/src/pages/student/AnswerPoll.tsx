@@ -16,7 +16,6 @@ export default function AnswerPoll() {
 
   const activeQuestion = pollRoom?.questions.find((q) => q.status === "ACTIVE");
 
-  // Fetch server time on component mount
   useEffect(() => {
     const fetchServerTime = async () => {
       try {
@@ -24,7 +23,7 @@ export default function AnswerPoll() {
         setTimeLeft(response.data.remaining);
       } catch (error) {
         console.error("Error fetching server time:", error);
-        // Fallback to local timer if server fails
+        
         if (activeQuestion) setTimeLeft(activeQuestion.timer);
       }
     };
@@ -35,7 +34,7 @@ export default function AnswerPoll() {
     if (pollRoom?.code) {
       socket?.emit("join-poll", pollRoom.code);
     }
-  }, [pollRoom?.code]); // Run only on initial mount
+  }, [pollRoom?.code]); 
 
   useEffect(() => {
     if (!sessionStorage.getItem("authToken")) {
@@ -137,16 +136,16 @@ export default function AnswerPoll() {
                   <div
                     key={option.id}
                     className="border rounded-md p-3 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => setSelectedOption(option.id)} // Add this
+                    onClick={() => setSelectedOption(option.id)} 
                   >
                     <RadioGroupItem
                       value={option.id}
                       id={option.id}
-                      className="peer sr-only" // Modified
+                      className="peer sr-only" 
                     />
                     <Label
                       htmlFor={option.id}
-                      className="flex items-center cursor-pointer font-medium peer-data-[state=checked]:text-purple-600 peer-data-[state=checked]:font-bold" // Modified
+                      className="flex items-center cursor-pointer font-medium peer-data-[state=checked]:text-purple-600 peer-data-[state=checked]:font-bold" 
                     >
                       {option.text}
                     </Label>
